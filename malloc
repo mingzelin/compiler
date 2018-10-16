@@ -1,0 +1,197 @@
+
+// free deallocates the memory stored at address and returns 0.
+// You may assume that address contains either an address allocated by malloc,
+// in which case it deallocates that memory, or the value 0 (NULL), in which case free does nothing.
+
+//arena()     arena() length
+//arena()+4   freeptr
+//arena()+8   start
+//arena()+12  end
+
+//arena()+16on allocation part
+//first:
+//+16  alloc  boolean
+//+20 size
+//+24 prev
+//+28 next
+//+32     return addr
+//+28 +size+4  size
+int malloc(int size){
+  int firstcheck = 0;
+  int result = 0;
+  int index = 0;
+  int choice = 0;
+  int next = 0;
+  int tmp = 0;
+  int start = 0;
+  int end = 0;
+  int oldsize = 0;
+  int oldprev = 0;
+  int oldnext = 0;
+  firstcheck = lw(arena());
+  if(firstcheck>0) {//never came
+    //go to zero part
+    // while(index < firstcheck/4){
+    //   sw(arena()+16 + index*4, 0-1);
+    //   index=index+1;
+    // }
+    //arena part
+    sw(arena(), 0 - firstcheck);
+    sw(arena()+4, 0 - 1);//freeptr
+    sw(arena()+8, arena()+28+size+8);
+    sw(arena()+12, arena()+firstcheck-4);
+    //alloc part
+    sw(arena()+16, 1);
+    sw(arena()+20, size);
+    sw(arena()+24, 0);  //when alloc = 1 prev and next are 0
+    sw(arena()+28, 0);
+
+    result = arena()+16;
+    sw(arena()+28 + size + 4, size);
+  }else{//have came
+    choice = lw(arena()+4);
+
+    while(choice!= 0-1){
+      oldsize = lw(choice+4);
+      oldprev = lw(choice+8);
+      oldnext = lw(choice+12);
+      if(oldsize>=size){
+        if(oldsize-size>20){//no waste
+          sw(choice, 1);
+          sw(choice+4, size);
+          sw(choice+8, 0);
+          next = lw(choice+12);
+          sw(choice+12, 0);
+          sw(choice+12+size+4, size);
+          result = choice;
+
+          sw(choice+12+size+8, 0);
+          sw(choice+12+size+12, oldsize-size-20);
+          sw(choice+12+size+16, oldprev);
+          sw(choice+12+size+20, oldnext);
+          sw(choice+12+size+20+(oldsize-size-20)+4, oldsize-size-20);
+          if(lw(arena()+4) == choice){
+            sw(arena()+4, choice+12+size+8);
+            sw(oldnext+8, choice+12+size+8);
+          }else{
+            sw(oldprev+12, choice+12+size+8);
+            sw(oldnext+8, choice+12+size+8);
+          }
+          choice = 0-1;
+        }else{//there is waste = 20
+          sw(choice, 1);
+          sw(choice+4, size);
+          sw(choice+8, 0);
+          next = lw(choice+12);
+          sw(choice+12, 0);
+          sw(choice+12+size+4, size);
+          result = choice;
+          if(lw(arena()+4) == choice){
+            sw(arena()+4, oldnext);
+            sw(oldnext+8, 0-1);
+          }else{
+            sw(oldprev+12, oldnext);
+            sw(oldnext+8, oldprev);
+          }
+          choice = 0-1;
+        }
+      }else{ //size not match
+        choice = lw(choice+12);
+      }
+    }
+
+  if(result == 0){//freeptr has no space
+      start = lw(arena()+8);
+      end = lw(arena()+12);
+      if((end-start)>=size+20){//unallocated has space
+        choice = start;
+        start = choice+12+size+8;
+        sw(choice, 1);
+        sw(choice+4, size);
+        sw(choice+8, 0);
+        sw(choice+12, 0);
+        sw(choice+12+size+4, size);
+        result = choice;
+      }else{//no space
+        result = 0;
+      }
+    }else{
+
+    }
+  }
+  return result;
+}
+
+int free(int address){
+  //no combine version
+  int front = 0;
+  int back = 0;
+  int curr = 0;
+  int newsize = 0;
+  int oldprev = 0;
+  int oldnext = 0;
+  int oldsize = 0;
+  if(address == 0){
+
+  }else{
+    sw(address, 0);
+    sw(address+8, 0-1);
+    sw(address+12, lw(arena()+4));
+    sw(arena()+4, address);
+  }
+
+  return 0;
+// //check front if free combine + modify freelist
+//   if(addr!= (arena()+16)){
+//     front = addr-4-lw(addr-4)-16;
+//     if(lw(front) == 0){//can combine
+//       //take out front
+//       oldprev = lw(front+8);
+//       oldnext = lw(front+12);
+//       if(oldprev!=-1){
+//         sw(oldprev+12, oldnext);
+//       }else{}
+//       if(oldnext!=-1){
+//         sw(oldnext+8, oldprev);
+//       }else{}
+//
+//       sw(front, 0);
+//       oldsize = lw(front+4);
+//       sw(front+4, (lw(addr+4)+20+oldsize));
+//       sw(front+8, -1);
+//       sw(front+12, arena()+4)
+//
+//
+//
+//     }else{}
+//   }else{}
+
+//check back iff free combine + modify freelist
+
+
+}
+//arena()     arena() length
+//arena()+4   freeptr
+//arena()+8   start
+//arena()+12  end
+  //arena()+16 on allocation part
+//first:
+//+16  alloc  boolean
+//+20 size
+//+24 prev
+//+28 next
+//+32     return addr
+//+28 +4*size+4  size
+
+
+// int wain(int v, int q){
+//   int a = 0;
+//   int b =0;
+//   int c = 0;
+//   a = malloc(4);
+//   free(a);
+//   b=malloc(8);
+//   free(b);
+//   //free(a);
+//   return a;
+// }
